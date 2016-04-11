@@ -34,3 +34,12 @@ E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312\TSP For Fun\WindowsF
 E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312\TSP For Fun\WindowsFormsApplication1\obj\Debug\TSP.csproj.GenerateResource.Cache
 E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312\TSP For Fun\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
 E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312\TSP For Fun\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe.config
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.exe
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.pdb
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\obj\Debug\TSP.csprojResolveAssemblyReference.cache
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\obj\Debug\TSP.mainform.resources
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.Properties.Resources.resources
+E:\Users\Joshua\Google Drive\School\2016 Winter\CS312\CS312-TSP\WindowsFormsApplication1\obj\Debug\TSP.csproj.GenerateResource.Cache

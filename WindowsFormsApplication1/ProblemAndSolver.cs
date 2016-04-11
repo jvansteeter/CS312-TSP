@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using System.Drawing;
 using System.Diagnostics;
 using WindowsFormsApplication1;
@@ -83,6 +84,8 @@ namespace TSP
         /// can be used by any solver method to truncate the search and return the BSSF
         /// </summary>
         private int time_limit;
+
+		private CityMap cityMap;
         #endregion
 
         #region Public members
@@ -648,6 +651,7 @@ namespace TSP
 			GSCitizen.setCities(Cities);
 			GSCitizen.setRandom(rnd);
 			int solutionsCount = 0;
+			int generationCount = 1;
 			// start time
 			Stopwatch timer = new Stopwatch();
 			timer.Start();
@@ -658,17 +662,14 @@ namespace TSP
 			// set global data for Genetic Solution
 			int populationSize = Cities.Length * 10;
 			int groupSize = 5;
+			int numNearbyCities = Cities.Length;
+			cityMap = new CityMap(Cities, numNearbyCities);
 			List<GSCitizen> population = new List<GSCitizen>();
 
 			// find initial greedy solutions
-			int greedyCount;
-			if(Cities.Length < 200)
-				greedyCount = Cities.Length;
-			else
-				greedyCount = 200;
-			for(int i = 0; i < greedyCount; i++)
+			for(int i = 0; i < populationSize; i++)
 			{
-				GSCitizen citizen = getGreedySolution(i);
+				GSCitizen citizen = getGreedySolution(i % Cities.Length);
 				if (bcsf.fitness() > citizen.fitness())
 				{
 					bcsf = citizen;
@@ -677,20 +678,10 @@ namespace TSP
 				}
 				population.Add(citizen);
 			}
-			// fill the rest of the population with random solutions
-			while (population.Count < populationSize)
-			{
-				GSCitizen citizen = getRandomSolution();
-				if (bcsf.fitness() > citizen.fitness())
-				{
-					bcsf = citizen;
-					bestTime = timer.Elapsed.ToString();
-				}
-				population.Add(citizen);
-			}
 
 			// Start breeding
 			while(timer.Elapsed.TotalMilliseconds < time_limit)
+			//while(generationCount < 200)
 			{
 				// produce the next generation
 				List<GSCitizen> nextGeneration = new List<GSCitizen>();
@@ -722,10 +713,17 @@ namespace TSP
 					}
 				}
 				population = nextGeneration;
+				generationCount++;
 				Console.WriteLine("Finished a generation");
 			}
 
+			//bssf = getGreedySolution(0).getSolution();
 			bssf = bcsf.getSolution();
+			double[] genValues = new double[populationSize];
+			for(int i = 0; i < populationSize; i++)
+			{
+				genValues[i] = population[i].fitness();
+			}
 
             string[] results = new string[3];
             results[COST] = costOfBssf().ToString();    // load results into array here, replacing these dummy values
@@ -750,31 +748,35 @@ namespace TSP
 
 			while (unvisited.Count > 0)
 			{
-				int closestIndex = -1;
-				double closestDistance = Double.PositiveInfinity;
-
-				// find the closest city to the last city in the current route
-				foreach (int city in unvisited)
+				int next = -1;
+				int[] nearby = cityMap.getClosestCities(route[route.Count - 1]);
+				bool available = false;
+				for (int i = 0; i < nearby.Length; i++)
 				{
-					double distance = Cities[route[route.Count - 1]].costToGetTo(Cities[city]);
-					if (distance < closestDistance)
+					if(unvisited.Contains(nearby[i]))
 					{
-						closestIndex = city;
-						closestDistance = distance;
+						next = nearby[i];
+						available = true;
+						break;
 					}
 				}
+				if(!available)
+				{
+					next = unvisited.ElementAt(rnd.Next() % unvisited.Count);
+				}
 
+				int odds = rnd.Next() % Cities.Length;
+				if(odds == 0)
+				{
+					next = unvisited.ElementAt(rnd.Next() % unvisited.Count);
+				}
+				
 				// add that closest city to the route
-				route.Add(closestIndex);
-				unvisited.Remove(closestIndex);
+				route.Add(next);
+				unvisited.Remove(next);
 			}
 			// greedy solution is complete
-			/*ArrayList solution = new ArrayList();
-			for (int j = 0; j < route.Count; j++)
-			{
-				solution.Add(Cities[route[j]]);
-			}
-			TSPSolution tspSolution = new TSPSolution(solution);*/
+			
 			return new GSCitizen(route);
 		}
 

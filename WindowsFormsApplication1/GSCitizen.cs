@@ -45,22 +45,7 @@ namespace WindowsFormsApplication1
 			this.solution = new TSPSolution(solution);
 		}
 
-		/*public GSCitizen(TSPSolution solution, List<int> route)
-		{
-			this.solution = solution;
-			this.route = route;
-			this.links = new int[Cities.Length];
-
-			for(int i = 0; i < route.Count; i++)
-			{
-				if (i + 1 == route.Count)
-					links[route[i]] = route[0];
-				else
-					links[route[i]] = route[i + 1];
-			}
-		}*/
-
-		public GSCitizen(int[] links)
+		/*public GSCitizen(int[] links)
 		{
 			GSCitizen.citizenCount++;
 
@@ -84,7 +69,7 @@ namespace WindowsFormsApplication1
 			}
 			this.route = route;
 			this.solution = new TSPSolution(solution);
-		}
+		}*/
 
 		public GSCitizen[] reproduce(GSCitizen mate)
 		{
@@ -172,13 +157,13 @@ namespace WindowsFormsApplication1
 
 			// generate children and give a chance for them to mutate
 			GSCitizen child1 = new GSCitizen(route1);
-			/*int chance = rnd.Next() % 100;
+			int chance = rnd.Next() % 100;
 			if(chance < 3)
-				child1.mutate();*/
+				child1.mutate();
 			GSCitizen child2 = new GSCitizen(route2);
-			/*chance = rnd.Next() % 100;
+			chance = rnd.Next() % 100;
 			if(chance < 3)
-				child2.mutate();*/
+				child2.mutate();
 			children[0] = child1;
 			children[1] = child2;
 			
@@ -187,7 +172,7 @@ namespace WindowsFormsApplication1
 
 		public void mutate()
 		{
-			Console.WriteLine("Mutating a horrible monster!");
+			//Console.WriteLine("Mutating a horrible monster!");
 			// Randomly relocate a city in the route
 			int randCityIndex = rnd.Next() % this.route.Count;
 			int randCity = this.route[randCityIndex];
