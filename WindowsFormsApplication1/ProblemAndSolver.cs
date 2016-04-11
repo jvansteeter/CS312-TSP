@@ -11,55 +11,7 @@ namespace TSP
 {
 
     class ProblemAndSolver
-    {
-
-        private class TSPSolution
-        {
-            /// <summary>
-            /// we use the representation [cityB,cityA,cityC] 
-            /// to mean that cityB is the first city in the solution, cityA is the second, cityC is the third 
-            /// and the edge from cityC to cityB is the final edge in the path.  
-            /// You are, of course, free to use a different representation if it would be more convenient or efficient 
-            /// for your data structure(s) and search algorithm. 
-            /// </summary>
-            public ArrayList
-                Route;
-
-            /// <summary>
-            /// constructor
-            /// </summary>
-            /// <param name="iroute">a (hopefully) valid tour</param>
-            public TSPSolution(ArrayList iroute)
-            {
-                Route = new ArrayList(iroute);
-            }
-
-            /// <summary>
-            /// Compute the cost of the current route.  
-            /// Note: This does not check that the route is complete.
-            /// It assumes that the route passes from the last city back to the first city. 
-            /// </summary>
-            /// <returns></returns>
-            public double costOfRoute()
-            {
-                // go through each edge in the route and add up the cost. 
-                int x;
-                City here;
-                double cost = 0D;
-
-                for (x = 0; x < Route.Count - 1; x++)
-                {
-                    here = Route[x] as City;
-                    cost += here.costToGetTo(Route[x + 1] as City);
-                }
-
-                // go from the last city to the first. 
-                here = Route[Route.Count - 1] as City;
-                cost += here.costToGetTo(Route[0] as City);
-                return cost;
-            }
-        }
-
+    {  
         #region Private members 
 
         /// <summary>
@@ -681,7 +633,6 @@ namespace TSP
 			bssf = greediest;
 			timer.Stop();
 
-
             string[] results = new string[3];
             results[COST] = greediest.costOfRoute().ToString();    // load results into array here, replacing these dummy values
             results[TIME] = timer.Elapsed.ToString();
@@ -692,16 +643,189 @@ namespace TSP
 
         public string[] fancySolveProblem()
         {
+			// Implement a genetic algorithm
+			// set global data for Genetic Solution Citizens
+			GSCitizen.setCities(Cities);
+			GSCitizen.setRandom(rnd);
+			int solutionsCount = 0;
+			// start time
+			Stopwatch timer = new Stopwatch();
+			timer.Start();
+			// Best Citizen So Far
+			GSCitizen bcsf = getRandomSolution();
+			solutionsCount++;
+			String bestTime = timer.Elapsed.ToString();
+			// set global data for Genetic Solution
+			int populationSize = Cities.Length * 10;
+			int groupSize = 5;
+			List<GSCitizen> population = new List<GSCitizen>();
+
+			// find initial greedy solutions
+			int greedyCount;
+			if(Cities.Length < 200)
+				greedyCount = Cities.Length;
+			else
+				greedyCount = 200;
+			for(int i = 0; i < greedyCount; i++)
+			{
+				GSCitizen citizen = getGreedySolution(i);
+				if (bcsf.fitness() > citizen.fitness())
+				{
+					bcsf = citizen;
+					bestTime = timer.Elapsed.ToString();
+					solutionsCount++;
+				}
+				population.Add(citizen);
+			}
+			// fill the rest of the population with random solutions
+			while (population.Count < populationSize)
+			{
+				GSCitizen citizen = getRandomSolution();
+				if (bcsf.fitness() > citizen.fitness())
+				{
+					bcsf = citizen;
+					bestTime = timer.Elapsed.ToString();
+				}
+				population.Add(citizen);
+			}
+
+			// Start breeding
+			while(timer.Elapsed.TotalMilliseconds < time_limit)
+			{
+				// produce the next generation
+				List<GSCitizen> nextGeneration = new List<GSCitizen>();
+				// shuffle the population
+				Shuffle<GSCitizen>(population);
+				// take groups of groupSize, breed the fitest two and replace the least fit group members with surviving children
+				while(population.Count > 0)
+				{
+					SpawningPool pool = new SpawningPool();
+					for(int i = 0; i < groupSize; i++)
+					{
+						if (population[0] != null)
+						{
+							pool.Add(population[0]);
+							population.RemoveAt(0);
+						}
+					}
+					GSCitizen[] survivors = pool.spawn();
+					for(int i = 0; i < survivors.Length; i++)
+					{
+						nextGeneration.Add(survivors[i]);
+						// if any survivers are more fit than the best citizen so far, make it the new best citizen so far
+						if (survivors[i].fitness() < bcsf.fitness())
+						{
+							bcsf = survivors[i];
+							bestTime = timer.Elapsed.ToString();
+							solutionsCount++;
+						}
+					}
+				}
+				population = nextGeneration;
+				Console.WriteLine("Finished a generation");
+			}
+
+			bssf = bcsf.getSolution();
+
             string[] results = new string[3];
-
-            // TODO: Add your implementation for your advanced solver here.
-
-            results[COST] = "not implemented";    // load results into array here, replacing these dummy values
-            results[TIME] = "-1";
-            results[COUNT] = "-1";
+            results[COST] = costOfBssf().ToString();    // load results into array here, replacing these dummy values
+            results[TIME] = bestTime;
+			results[COUNT] = solutionsCount + "";
 
             return results;
         }
+
+		private GSCitizen getGreedySolution(int startCity)
+		{
+			List<int> route = new List<int>();
+			// at first all cities are unvisited
+			HashSet<int> unvisited = new HashSet<int>();
+			for (int j = 0; j < Cities.Length; j++)
+			{
+				unvisited.Add(j);
+			}
+
+			route.Add(startCity);
+			unvisited.Remove(startCity);
+
+			while (unvisited.Count > 0)
+			{
+				int closestIndex = -1;
+				double closestDistance = Double.PositiveInfinity;
+
+				// find the closest city to the last city in the current route
+				foreach (int city in unvisited)
+				{
+					double distance = Cities[route[route.Count - 1]].costToGetTo(Cities[city]);
+					if (distance < closestDistance)
+					{
+						closestIndex = city;
+						closestDistance = distance;
+					}
+				}
+
+				// add that closest city to the route
+				route.Add(closestIndex);
+				unvisited.Remove(closestIndex);
+			}
+			// greedy solution is complete
+			/*ArrayList solution = new ArrayList();
+			for (int j = 0; j < route.Count; j++)
+			{
+				solution.Add(Cities[route[j]]);
+			}
+			TSPSolution tspSolution = new TSPSolution(solution);*/
+			return new GSCitizen(route);
+		}
+
+		private GSCitizen getRandomSolution()
+		{
+			int i, swap, temp, count = 0;
+			string[] results = new string[3];
+			int[] perm = new int[Cities.Length];
+			ArrayList solution = new ArrayList();
+			TSPSolution tspSolution;
+			List<int> route = new List<int>();
+
+			do
+			{
+				for (i = 0; i < perm.Length; i++)                                 // create a random permutation template
+					perm[i] = i;
+				for (i = 0; i < perm.Length; i++)
+				{
+					swap = i;
+					while (swap == i)
+						swap = rnd.Next(0, Cities.Length);
+					temp = perm[i];
+					perm[i] = perm[swap];
+					perm[swap] = temp;
+				}
+				solution.Clear();
+				for (i = 0; i < Cities.Length; i++)                            // Now build the route using the random permutation 
+				{
+					solution.Add(Cities[perm[i]]);
+					route.Add(perm[i]);
+				}
+				tspSolution = new TSPSolution(solution);
+				count++;
+			} while (tspSolution.costOfRoute() == double.PositiveInfinity);                // until a valid route is found
+
+			return new GSCitizen(route);
+		}
+
+		public void Shuffle<T>(List<T> list)
+		{
+			int n = list.Count;
+			//Random rnd = new Random();
+			while (n > 1)
+			{
+				int k = (rnd.Next(0, n) % n);
+				n--;
+				T value = list[k];
+				list[k] = list[n];
+				list[n] = value;
+			}
+		}
         #endregion
     }
 }

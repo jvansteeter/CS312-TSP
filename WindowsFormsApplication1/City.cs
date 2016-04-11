@@ -53,6 +53,10 @@ namespace TSP
         /// </summary>
         public double costToGetTo (City destination) 
         {
+			// If attempting to calculate the cost to get to itself, return positive infinity
+			if (this.Equals(destination))
+				return Double.PositiveInfinity;
+
             // Cartesian distance
             double magnitude = Math.Sqrt(Math.Pow(this.X - destination.X, 2) + Math.Pow(this.Y - destination.Y, 2));
 
