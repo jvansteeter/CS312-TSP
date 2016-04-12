@@ -331,236 +331,318 @@ namespace TSP
         /// stops when time limit expires and uses BSSF as solution
         /// </summary>
         /// <returns>results array for GUI that contains three ints: cost of solution, time spent to find solution, number of solutions found during search (not counting initial BSSF estimate)</returns>
-        public string[] bBSolveProblem()
-        {
-            // Cleverly come up with an initial BSSF
-            // Start at City[0]
-            Stopwatch timer = new Stopwatch();
-            timer.Start();
-            ArrayList initial = new ArrayList();
-            initial.Add(Cities[0]);
+		public string[] bBSolveProblem()
+		{
+			string[] results = new string[3];
+			int solutionCount = 0;
+			Stopwatch timer = new Stopwatch();
+			PriorityQueue<State> pQueue = new PriorityQueue<State>();
+			int maxStoredStates = 0;
+			int bssfUpdates = 0;
+			int totalStatesCreated = 0;
+			int totalStatesPruned = 0;
 
-            List<City> temp = new List<City>();
-            for (int i = 0; i < Cities.Length; i++)                             // Time O(n)
-                temp.Add(Cities[i]);                                            // Space O(n)
-            
-            HeapQue initialQue = new HeapQue(temp);                             // Space O(n) Time O(n)
-            initialQue.decreaseKey(0, 0);                                       // Time O(1)
-            for (int i = 1; i < Cities.Length; i++)
-                initialQue.decreaseKey(i, Cities[0].costToGetTo(Cities[i]));    // Time O(logn)
-            
-            while(!initialQue.isEmpty())
-                initial.Add(Cities[initialQue.deleteMin()]);
+			timer.Start();
+			string[] intialResults = defaultSolveProblem();
+			double bestCostSoFar = Int32.Parse(intialResults[COST]);
+			Console.WriteLine("BestCostSoFar: " + bestCostSoFar);
 
-            bssf = new TSPSolution(initial);
+			State initialState = initializeState();
+			this.reduceState(ref initialState);
+			pQueue.insert(initialState, (int)initialState.lowerBound);
 
-            // Begin the Branch and Bound
-			
-            // Produce the Initial Reduced Cost Matrix
-            double[,] rcm = new double[Cities.Length, Cities.Length];           // Space O(n^2)
-            double lowerBound = 0;
-            for(int y = 0; y < Cities.Length; y++)                              // Time O(n^2)
-            {
-                double shortestDistance = Double.PositiveInfinity;
-                // initialize the matrix with the distance to each other city x from city y, keep track of the closet city
-                for(int x = 0; x < Cities.Length; x++)                          // Time O(n)
-                {
-                    if (x == y)
-                        rcm[x, y] = Double.PositiveInfinity;
-                    else
-                        rcm[x, y] = Cities[x].costToGetTo(Cities[y]);
-                    if (rcm[x, y] < shortestDistance)
-                        shortestDistance = rcm[x, y];
-                }
-
-                // add the distance to the closest city to the lower bound and subtract the distance to the closest city from the distance to every other city
-                lowerBound += shortestDistance;
-                for(int x = 0; x < Cities.Length; x++)                          // Time O(n)
-                {
-                    rcm[x, y] = rcm[x, y] - shortestDistance;
-                }
-            }
-            // make sure there is at least one zero in each column, or that each column is all infinity
-            for(int x = 0; x < Cities.Length; x++)                              // Time O(n^2)
-            {
-                double shortestDistance = Double.PositiveInfinity;
-                for(int y = 0; y < Cities.Length; y++)                          // Time O(n)
-                {
-                    if (rcm[x, y] < shortestDistance)
-                        shortestDistance = rcm[x, y];
-                }
-                if(shortestDistance != 0 && shortestDistance != Double.PositiveInfinity)
-                {
-                    // if the shortest distance in the column is not zero and it is not infinity, add the smallest value to the lower bound and decrement every other value in the column
-                    lowerBound += shortestDistance;
-                    for(int y = 0; y < Cities.Length; y++)                      // Time O(n)
-                    {
-                        rcm[x, y] = rcm[x, y] - shortestDistance;
-                    }
-                }
-            }
-
-			// Priority Que
-			PriorityQueue<BBState> que = new PriorityQueue<BBState>();
-
-			// Find the Arnell Constant
-			double arnellConstant = 0;
-			int numPaths = 0;
-			for(int y = 0; y < Cities.Length; y++)
+			while (!pQueue.isEmpty() && timer.Elapsed.Seconds < 60) // while queue is not empty or has not passed 60 seconds
 			{
-				for(int x = 0; x < Cities.Length; x++)
+				State parentState = pQueue.deleteMin();
+				if (parentState.lowerBound >= bestCostSoFar) // trim queue if state has worse bound than bssf
 				{
-					double cost = Cities[x].costToGetTo(Cities[y]);
-					if (cost < Double.PositiveInfinity)
-					{
-						arnellConstant += cost;
-						numPaths++;
-					}
-				}
-			}
-			arnellConstant = arnellConstant / numPaths;
-			BBState.arnellConstant = arnellConstant;
-			Console.WriteLine("This is not broken");
-
-
-
-			// all counting variables
-			int count = 0;
-			int stateCount = 0;
-			int trimCount = 0;
-			int storedCount = 0;
-			String bestTime = timer.Elapsed.ToString();
-
-			// add states to the Priority Que representing starting at each city
-			for(int i = 0; i < Cities.Length; i++)                              // Time O(n)
-			{
-				List<int> newRoute = new List<int>();                           // Space O(n)
-				newRoute.Add(i);
-				double[,] newRCM = (double[,])rcm.Clone();						// Space O(n^2)
-				que.Enqueue(new BBState(newRCM, lowerBound, newRoute));			// Space O(n)
-				stateCount++;
-			}
-			
-			// while there is still time left, keep looping
-			while(timer.Elapsed.TotalMilliseconds < time_limit && que.Count() > 0)  // Space O(n!n^3) Time O(n!n^3)  
-			{
-				// Count the max number of states stored in the queue at one time
-				if (storedCount < que.Count())
-					storedCount = que.Count();
-
-				// Get the next state, if its lower bound is greater than the BSSF prune it
-				BBState state = que.Dequeue();
-				if (state.lowerBound > bssf.costOfRoute())
-				{
-					trimCount++;
+					totalStatesPruned++;
 					continue;
 				}
-				// Find all cities that are yet to be visited
-				HashSet<int> unvisitedCities = new HashSet<int>();
-				for(int i = 0; i < Cities.Length; i++)							// Time O(n)
+				for (int i = 0; i < this.Cities.Length; i++)
 				{
-					unvisitedCities.Add(i);										// Space O(n)
-				}
-				for(int i = 0; i < state.route.Count; i++)						// Time O(n)
-				{
-					unvisitedCities.Remove((int)state.route[i]);
-				}
-				foreach(int nextCity in unvisitedCities)						// Time O(n^3) Space O(n^3)
-				{
-					int startingCity = (int)state.route[state.route.Count - 1];
-					BBState nextState = GenerateNextState(rcm, state.route, nextCity, state.lowerBound);  // Space O(n^2) Time O(n^2)
-					stateCount++;
-					if (nextState.lowerBound > bssf.costOfRoute())
+					if (!parentState.visited.Contains(i))
 					{
-						trimCount++;
-						continue;
-					}
-					// check if the route is complete, if it is and better than BSSF, set as BSSF
-					if (nextState.route.Count == Cities.Length)
-					{
-						ArrayList cityRoute = new ArrayList();
-						for(int i = 0; i < nextState.route.Count; i++)			// Time O(n)
+						// createChild
+						totalStatesCreated++;
+						State childState = parentState.getCopy();
+						this.addCityToRoute(ref childState, i);
+						this.reduceState(ref childState);
+						if (childState.route.Count == this.Cities.Count()) // if route is complete
 						{
-							cityRoute.Add(Cities[nextState.route[i]]);			// Space O(n)
+							TSPSolution newSolution = new TSPSolution(childState.route);
+							double cost = newSolution.costOfRoute();
+							if (cost < bestCostSoFar)
+							{
+								bssfUpdates++;
+								bestCostSoFar = cost;
+								bssf.Route = childState.route;
+							}
 						}
-						TSPSolution newSolution = new TSPSolution(cityRoute);
-						if (newSolution.costOfRoute() < bssf.costOfRoute())
+						else // route is not complete
 						{
-							bssf = newSolution;
-							bestTime = timer.Elapsed.ToString();
-							count++;
+							if (childState.lowerBound < bestCostSoFar) // don't insert in queue if state has worse bound than bssf
+							{
+								pQueue.insert(childState, (int)childState.lowerBound);
+								if (pQueue.getCount() > maxStoredStates)
+								{
+									maxStoredStates = pQueue.getCount();
+								}
+							}
+							else
+							{
+								totalStatesPruned++;
+							}
 						}
-					}
-					else // if the route is not complete, add it to the priority queue
-					{
-						que.Enqueue(nextState);
+
 					}
 				}
 			}
 
-            bestTime = timer.Elapsed.ToString();
-            timer.Stop();
+			timer.Stop();
 
-			// Print count variables
-			Console.WriteLine("Run Time: " + bestTime + " Max stored#: " + storedCount + " Total Created: " + stateCount + " Pruned#: " + (trimCount + que.Count()) + " Arnell's Const: " + BBState.arnellConstant);
+			results[COST] = costOfBssf().ToString();
+			results[TIME] = timer.Elapsed.ToString();
+			results[COUNT] = solutionCount.ToString();
 
-			// pass array of results to GUI
-            string[] results = new string[3];
-            results[COST] = costOfBssf().ToString();    
-            results[TIME] = bestTime;
-            results[COUNT] = count + "";
 
-            return results;
-        }
+			Console.WriteLine("===================================");
+			Console.WriteLine("StatesCreated: " + totalStatesCreated);
+			Console.WriteLine("StatesPruned: " + totalStatesPruned);
+			Console.WriteLine("bssfUpdates: " + bssfUpdates);
+			Console.WriteLine("MaxStoredStates: " + maxStoredStates);
 
-		// create the next state representing going from the starting city to the next city
-		private BBState GenerateNextState(double[,] reducedCostMatrix, List<int> currentRoute, int nextCity, double lowerBound)
+
+			return results;
+		}
+
+		private struct State
 		{
-			// Time O(n^2) Space O(n^2) 
-			// find starting city
-			List<int> route = new List<int>();
-			for(int i = 0; i < currentRoute.Count; i++)														// Time O(n)
-			{
-				route.Add(currentRoute[i]);																	// Space O(n)
-			}
-			int startingCity = (int)route[route.Count - 1];
-			// add the next city to the route
-			route.Add(nextCity);
-			// copy the reduced cost matrix to a new rcm
-			double[,] rcm = (double[,])reducedCostMatrix.Clone();											// Space O(n^2)
-			// add the value of going from the starting city to next city to the current lower bound
-			lowerBound += rcm[startingCity, nextCity];
-			// make the inverse value infinity
-			rcm[nextCity, startingCity] = Double.PositiveInfinity;
+			public double[,] costMatrix;
+			public double lowerBound;
+			public ArrayList route;
+			public HashSet<int> visited;
+			public int lastVisitedIndex;
 
-			// make the starting city row and next city column all infinity
-			for(int i = 0; i < Cities.Length; i++)															// Time O(n)
+			public State(double[,] matrix, double lowerBound)
 			{
-				rcm[startingCity, i] = Double.PositiveInfinity;
-				rcm[i, nextCity] = Double.PositiveInfinity;
+				this.costMatrix = matrix;
+				this.lowerBound = lowerBound;
+				this.route = new ArrayList();
+				this.visited = new HashSet<int>();
+				this.lastVisitedIndex = 0;
 			}
 
-			// rebalance the array, making sure that every row and column has at least one 0 or is all infinity
-			for (int x = 0; x < Cities.Length; x++)															// Time O(n^2)
+			public State getCopy()
 			{
-				double shortestDistance = Double.PositiveInfinity;
-				for (int y = 0; y < Cities.Length; y++)														// Time O(n)
+				State newState = new State();
+				newState.costMatrix = (double[,])this.costMatrix.Clone();
+				newState.lowerBound = this.lowerBound;
+				newState.route = new ArrayList(this.route);
+				newState.visited = new HashSet<int>(this.visited);
+				newState.lastVisitedIndex = this.lastVisitedIndex;
+				return newState;
+			}
+
+			public override string ToString()
+			{
+				StringBuilder sb = new StringBuilder();
+				sb.Append(costMatrixToString(this.costMatrix));
+				sb.Append("Lowerbound: " + lowerBound + "\n");
+				sb.Append("Route: ");
+				foreach (var thing in route)
 				{
-					if (rcm[x, y] < shortestDistance)
-						shortestDistance = rcm[x, y];
+					sb.Append(thing + " ");
 				}
-				if (shortestDistance != 0 && shortestDistance != Double.PositiveInfinity)
+				return sb.ToString() + "\n";
+			}
+
+			private string costMatrixToString(double[,] costMatrix)
+			{
+				StringBuilder sb = new StringBuilder();
+				for (int i = 0; i < costMatrix.GetLength(0); i++)
 				{
-					// if the shortest distance in the column is not zero and it is not infinity, add the smallest value to the lower bound and decrement every other value in the column
-					lowerBound += shortestDistance;
-					for (int y = 0; y < Cities.Length; y++)													// Time O(n)
+					sb.Append("\n");
+					for (int j = 0; j < costMatrix.GetLength(1); j++)
 					{
-						rcm[x, y] = rcm[x, y] - shortestDistance;
+						if (costMatrix[i, j] == double.PositiveInfinity)
+						{
+							sb.Append("~");
+						}
+						sb.Append(costMatrix[i, j]);
+						if (costMatrix[i, j] == double.PositiveInfinity)
+						{
+							sb.Append("~\t\t");
+						}
+						else
+						{
+							sb.Append("\t\t");
+						}
+					}
+				}
+				sb.Append("\n");
+				return sb.ToString();
+			}
+
+		}
+
+		private class PriorityQueue<T>
+		{
+			private SortedDictionary<int, HashSet<T>> items = new SortedDictionary<int, HashSet<T>>();
+			private int count = 0;
+			// Total Time Complexity = O(1)
+			public void insert(T item, int priority)
+			{
+				count++;
+				if (items.ContainsKey(priority))
+				{
+					items[priority].Add(item);
+				}
+				else
+				{
+					HashSet<T> newSet = new HashSet<T>();
+					newSet.Add(item);
+					items[priority] = newSet;
+				}
+			}
+
+			public int getCount()
+			{
+				return count;
+			}
+
+			public T deleteMin()
+			{
+				count--;
+				int key = this.items.Keys.First(); // get key for first set
+				T item = this.items[key].First(); // get first item in first set
+				this.items[key].Remove(item); // remove item from set
+				if (this.items[key].Count == 0) // if set is empty
+				{
+					this.items.Remove(key); // remove set from dictionary
+				}
+				return item;
+			}
+
+			// Total Time Complexity = O(1)
+			public bool isEmpty()
+			{
+				return (this.items.Count == 0);
+			}
+
+			public void printQueue()
+			{
+				if (this.items.Count == 0)
+				{
+					Console.WriteLine("Priority Queue is empty!");
+					return;
+				}
+				foreach (int key in this.items.Keys)
+				{
+					HashSet<T> set = this.items[key];
+					Console.WriteLine("Priority: " + key + "\n\t");
+					foreach (T item in set)
+					{
+						Console.Write(item);
+					}
+				}
+			}
+		}
+
+		private State initializeState()
+		{
+			int NUM_CITIES = this.Cities.Length;
+			double[,] costMatrix = new double[NUM_CITIES, NUM_CITIES];
+			for (int i = 0; i < costMatrix.GetLength(0); i++)
+			{
+				for (int j = 0; j < costMatrix.GetLength(1); j++)
+				{
+					if (i == j) // diagonal
+					{
+						costMatrix[i, j] = double.PositiveInfinity;
+					}
+					else
+					{
+						costMatrix[i, j] = this.Cities[i].costToGetTo(this.Cities[j]);
 					}
 				}
 			}
 
-			return new BBState(rcm, lowerBound, route);
+			State newState = new State(costMatrix, 0);
+			newState.route.Add(this.Cities[0]);
+			newState.visited.Add(0);
+			return newState;
+		}
+
+		private void addCityToRoute(ref State state, int cityIndex)
+		{
+			state.lowerBound += state.costMatrix[state.lastVisitedIndex, cityIndex];
+			for (int i = 0; i < state.costMatrix.GetLength(0); i++)
+			{
+				state.costMatrix[i, cityIndex] = double.PositiveInfinity;
+			}
+			for (int j = 0; j < state.costMatrix.GetLength(1); j++)
+			{
+				state.costMatrix[state.lastVisitedIndex, j] = double.PositiveInfinity;
+			}
+			state.costMatrix[cityIndex, state.lastVisitedIndex] = double.PositiveInfinity;
+			state.route.Add(this.Cities[cityIndex]);
+			state.visited.Add(cityIndex);
+			state.lastVisitedIndex = cityIndex;
+		}
+
+		private void reduceState(ref State state)
+		{
+			reduceRows(ref state);
+			reduceColumns(ref state);
+		}
+
+		private void reduceRows(ref State state)
+		{
+			for (int i = 0; i < state.costMatrix.GetLength(0); i++)
+			{
+				double min = state.costMatrix[i, 0]; // first thing in row
+				for (int j = 0; j < state.costMatrix.GetLength(1); j++)
+				{
+					if (state.costMatrix[i, j] < min)
+					{
+						min = state.costMatrix[i, j];
+					}
+				}
+				if (min > 0 && min != double.PositiveInfinity)
+				{
+					state.lowerBound += min;
+					// substract everything in that row
+					for (int j = 0; j < state.costMatrix.GetLength(1); j++)
+					{
+						state.costMatrix[i, j] = state.costMatrix[i, j] - min;
+					}
+				}
+			}
+		}
+
+		private void reduceColumns(ref State state)
+		{
+			for (int j = 0; j < state.costMatrix.GetLength(0); j++)
+			{
+				double min = state.costMatrix[0, j]; // first thing in column
+				for (int i = 0; i < state.costMatrix.GetLength(1); i++)
+				{
+					if (state.costMatrix[i, j] < min)
+					{
+						min = state.costMatrix[i, j];
+					}
+				}
+				if (min > 0 && min != double.PositiveInfinity)
+				{
+					state.lowerBound += min;
+					// substract everything in that column
+					for (int i = 0; i < state.costMatrix.GetLength(1); i++)
+					{
+						state.costMatrix[i, j] = state.costMatrix[i, j] - min;
+					}
+				}
+			}
 		}
 
         /////////////////////////////////////////////////////////////////////////////////////////////
@@ -679,11 +761,6 @@ namespace TSP
 			}
 
 			// Start breeding
-<<<<<<< e7ea4eadff6371c8f7098066c4627767a7d8491f
-			while(timer.Elapsed.TotalMilliseconds < time_limit && generationCount - bestSoFarGen < 150)
-=======
-			//while(timer.Elapsed.TotalMilliseconds < time_limit)
->>>>>>> as good as it will get
 			//while(generationCount < 200)
 			while(attempts < populationSize*10)
 			{
@@ -714,11 +791,7 @@ namespace TSP
 							bcsf = survivors[i];
 							bestTime = timer.Elapsed.ToString();
 							solutionsCount++;
-<<<<<<< e7ea4eadff6371c8f7098066c4627767a7d8491f
-                            bestSoFarGen = generationCount;
-=======
 							attempts = 0;
->>>>>>> as good as it will get
 						}
 					}
 				}
