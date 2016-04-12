@@ -497,7 +497,9 @@ namespace TSP
 					}
 				}
 			}
-			timer.Stop();
+
+            bestTime = timer.Elapsed.ToString();
+            timer.Stop();
 
 			// Print count variables
 			Console.WriteLine("Run Time: " + bestTime + " Max stored#: " + storedCount + " Total Created: " + stateCount + " Pruned#: " + (trimCount + que.Count()) + " Arnell's Const: " + BBState.arnellConstant);
@@ -663,6 +665,7 @@ namespace TSP
 			int populationSize = Cities.Length * 10;
 			int groupSize = 5;
 			int numNearbyCities = Cities.Length;
+            int bestSoFarGen = 0;
 			cityMap = new CityMap(Cities, numNearbyCities);
 			List<GSCitizen> population = new List<GSCitizen>();
 
@@ -680,7 +683,7 @@ namespace TSP
 			}
 
 			// Start breeding
-			while(timer.Elapsed.TotalMilliseconds < time_limit)
+			while(timer.Elapsed.TotalMilliseconds < time_limit && generationCount - bestSoFarGen < 300)
 			//while(generationCount < 200)
 			{
 				// produce the next generation
@@ -709,12 +712,13 @@ namespace TSP
 							bcsf = survivors[i];
 							bestTime = timer.Elapsed.ToString();
 							solutionsCount++;
+                            bestSoFarGen = generationCount;
 						}
 					}
 				}
 				population = nextGeneration;
 				generationCount++;
-				Console.WriteLine("Finished a generation");
+				//Console.WriteLine("Finished a generation");
 			}
 
 			//bssf = getGreedySolution(0).getSolution();
@@ -725,6 +729,7 @@ namespace TSP
 				genValues[i] = population[i].fitness();
 			}
 
+            bestTime = timer.Elapsed.ToString();
             string[] results = new string[3];
             results[COST] = costOfBssf().ToString();    // load results into array here, replacing these dummy values
             results[TIME] = bestTime;
