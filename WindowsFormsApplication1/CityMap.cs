@@ -19,15 +19,26 @@ namespace WindowsFormsApplication1
 			for(int y = 0; y < Cities.Length; y++)
 			{
 				int[] closestCities = new int[numNearby];
-				List<double> distances = new List<double>();
+				List<KeyValuePair<int, double>> distances = new List<KeyValuePair<int, double>>();
 				for(int x = 0; x < Cities.Length; x++)
 				{
-					distances.Add(Cities[y].costToGetTo(Cities[x]));
+					distances.Add(new KeyValuePair<int,double>(x, Cities[y].costToGetTo(Cities[x])));
 				}
-				for (int i = 0; i < closestCities.Length; i++)
+				for(int i = 0; i < distances.Count; i++)
 				{
-					closestCities[i] = distances.IndexOf(distances.Min());
-					distances[distances.IndexOf(distances.Min())] = Double.PositiveInfinity;
+					for(int j = 0; j < distances.Count - 1; j++)
+					{
+						if(distances[j].Value > distances[j + 1].Value)
+						{
+							KeyValuePair<int, double> temp = distances[j];
+							distances[j] = distances[j + 1];
+							distances[j + 1] = temp;
+						}
+					}
+				}
+				for (int i = 0; i < distances.Count; i++)
+				{
+					closestCities[i] = distances[i].Key;
 				}
 				map[y] = closestCities;
 			}

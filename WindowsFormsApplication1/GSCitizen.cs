@@ -16,6 +16,7 @@ namespace WindowsFormsApplication1
 		private static City[] Cities;
 		private static Random rnd;
 		private static int citizenCount = 0;
+		public static CityMap cityMap;
 
 		public static void setCities(City[] Cities)
 		{
@@ -45,32 +46,6 @@ namespace WindowsFormsApplication1
 			this.solution = new TSPSolution(solution);
 		}
 
-		/*public GSCitizen(int[] links)
-		{
-			GSCitizen.citizenCount++;
-
-			this.links = links;
-			ArrayList solution = new ArrayList();
-			List<int> route = new List<int>();
-			
-			// construct the TSPSolution from the links
-			// first build a route on ints
-			for (int i = 0; i < links.Length; i++)
-			{
-				if (i == 0)
-					route.Add(links[0]);
-				else
-					route.Add(links[route[route.Count - 1]]);
-			}
-			// using the route, construct the TSPSolution
-			for(int i = 0; i < route.Count; i++)
-			{
-				solution.Add(Cities[route[i]]);
-			}
-			this.route = route;
-			this.solution = new TSPSolution(solution);
-		}*/
-
 		public GSCitizen[] reproduce(GSCitizen mate)
 		{
 			GSCitizen[] children = new GSCitizen[2];
@@ -93,10 +68,10 @@ namespace WindowsFormsApplication1
 				{
 					if(i == 0)
 					{
-						route1.Add(this.route[0]);
-						missingLinks1.Remove(this.route[0]);
-						route2.Add(mate.route[0]);
-						missingLinks2.Remove(mate.route[0]);
+						route1.Add(0);
+						missingLinks1.Remove(0);
+						route2.Add(0);
+						missingLinks2.Remove(0);
 					}
 					else 
 					{
@@ -108,9 +83,16 @@ namespace WindowsFormsApplication1
 						}
 						else
 						{
-							int next = missingLinks1.ElementAt(rnd.Next() % missingLinks1.Count);
-							route1.Add(next);
+							int[] nearest = cityMap.getClosestCities(route1[route1.Count - 1]);
+							int next;
+							int count = 0;
+							do
+							{
+								next = nearest[count];
+								count++;
+							} while (!missingLinks1.Contains(next));
 							missingLinks1.Remove(next);
+							route1.Add(next);
 						}
 						if (missingLinks2.Contains(mate.links[route2[route2.Count - 1]]))
 						{
@@ -120,9 +102,16 @@ namespace WindowsFormsApplication1
 						}
 						else
 						{
-							int next = missingLinks2.ElementAt(rnd.Next() % missingLinks2.Count);
-							route2.Add(next);
+							int[] nearest = cityMap.getClosestCities(route2[route2.Count - 1]);
+							int next;
+							int count = 0;
+							do
+							{
+								next = nearest[count];
+								count++;
+							} while (!missingLinks2.Contains(next));
 							missingLinks2.Remove(next);
+							route2.Add(next);
 						}
 					}
 				}
@@ -136,9 +125,16 @@ namespace WindowsFormsApplication1
 					}
 					else
 					{
-						int next = missingLinks1.ElementAt(rnd.Next() % missingLinks1.Count);
-						route1.Add(next);
+						int[] nearest = cityMap.getClosestCities(route1[route1.Count - 1]);
+						int next;
+						int count = 0;
+						do
+						{
+							next = nearest[count];
+							count++;
+						} while (!missingLinks1.Contains(next));
 						missingLinks1.Remove(next);
+						route1.Add(next);
 					}
 					if (missingLinks2.Contains(this.links[route2[route2.Count - 1]]))
 					{
@@ -148,9 +144,16 @@ namespace WindowsFormsApplication1
 					}
 					else
 					{
-						int next = missingLinks2.ElementAt(rnd.Next() % missingLinks2.Count);
-						route2.Add(next);
+						int[] nearest = cityMap.getClosestCities(route2[route2.Count - 1]);
+						int next;
+						int count = 0;
+						do
+						{
+							next = nearest[count];
+							count++;
+						} while (!missingLinks2.Contains(next));
 						missingLinks2.Remove(next);
+						route2.Add(next);
 					}
 				}
 			}

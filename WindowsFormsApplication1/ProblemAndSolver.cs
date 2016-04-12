@@ -576,6 +576,7 @@ namespace TSP
 			Console.WriteLine("Running greedy solutions");
 			Stopwatch timer = new Stopwatch();
 			timer.Start();
+			cityMap = new CityMap(Cities, Cities.Length);
 
 			// set of all greedy solutions
 			HashSet<TSPSolution> greedySolutions = new HashSet<TSPSolution>();
@@ -597,23 +598,16 @@ namespace TSP
 
 				while(unvisited.Count > 0)
 				{
-					int closestIndex = -1;
-					double closestDistance = Double.PositiveInfinity;
-
-					// find the closest city to the last city in the current route
-					foreach(int city in unvisited)
+					int[] nearest = cityMap.getClosestCities(route[route.Count - 1]);
+					int next;
+					int count = 0;
+					do
 					{
-						double distance = Cities[route[route.Count - 1]].costToGetTo(Cities[city]);
-						if(distance < closestDistance)
-						{
-							closestIndex = city;
-							closestDistance = distance;
-						}
-					}
-
-					// add that closest city to the route
-					route.Add(closestIndex);
-					unvisited.Remove(closestIndex);
+						next = nearest[count];
+						count++;
+					} while (!unvisited.Contains(next));
+					unvisited.Remove(next);
+					route.Add(next);
 				}
 				// greedy solution is complete, add it to the set of all solutions
 				ArrayList solution = new ArrayList();
@@ -654,6 +648,7 @@ namespace TSP
 			GSCitizen.setRandom(rnd);
 			int solutionsCount = 0;
 			int generationCount = 1;
+			int attempts = 0;
 			// start time
 			Stopwatch timer = new Stopwatch();
 			timer.Start();
@@ -662,11 +657,12 @@ namespace TSP
 			solutionsCount++;
 			String bestTime = timer.Elapsed.ToString();
 			// set global data for Genetic Solution
-			int populationSize = Cities.Length * 10;
+			int populationSize = 2000;// Cities.Length * 15;
 			int groupSize = 5;
 			int numNearbyCities = Cities.Length;
             int bestSoFarGen = 0;
 			cityMap = new CityMap(Cities, numNearbyCities);
+			GSCitizen.cityMap = cityMap;
 			List<GSCitizen> population = new List<GSCitizen>();
 
 			// find initial greedy solutions
@@ -683,8 +679,13 @@ namespace TSP
 			}
 
 			// Start breeding
+<<<<<<< e7ea4eadff6371c8f7098066c4627767a7d8491f
 			while(timer.Elapsed.TotalMilliseconds < time_limit && generationCount - bestSoFarGen < 150)
+=======
+			//while(timer.Elapsed.TotalMilliseconds < time_limit)
+>>>>>>> as good as it will get
 			//while(generationCount < 200)
+			while(attempts < populationSize*10)
 			{
 				// produce the next generation
 				List<GSCitizen> nextGeneration = new List<GSCitizen>();
@@ -706,13 +707,18 @@ namespace TSP
 					for(int i = 0; i < survivors.Length; i++)
 					{
 						nextGeneration.Add(survivors[i]);
+						attempts++;
 						// if any survivers are more fit than the best citizen so far, make it the new best citizen so far
 						if (survivors[i].fitness() < bcsf.fitness())
 						{
 							bcsf = survivors[i];
 							bestTime = timer.Elapsed.ToString();
 							solutionsCount++;
+<<<<<<< e7ea4eadff6371c8f7098066c4627767a7d8491f
                             bestSoFarGen = generationCount;
+=======
+							attempts = 0;
+>>>>>>> as good as it will get
 						}
 					}
 				}
@@ -733,7 +739,7 @@ namespace TSP
             Console.WriteLine("Run time: " + timer.Elapsed.ToString());
             string[] results = new string[3];
             results[COST] = costOfBssf().ToString();    // load results into array here, replacing these dummy values
-            results[TIME] = bestTime;
+            results[TIME] = timer.Elapsed.ToString();
 			results[COUNT] = solutionsCount + "";
 
             return results;
