@@ -683,7 +683,7 @@ namespace TSP
 			}
 
 			// Start breeding
-			while(timer.Elapsed.TotalMilliseconds < time_limit && generationCount - bestSoFarGen < 300)
+			while(timer.Elapsed.TotalMilliseconds < time_limit && generationCount - bestSoFarGen < 150)
 			//while(generationCount < 200)
 			{
 				// produce the next generation
@@ -729,7 +729,8 @@ namespace TSP
 				genValues[i] = population[i].fitness();
 			}
 
-            bestTime = timer.Elapsed.ToString();
+            //            bestTime = timer.Elapsed.ToString();
+            Console.WriteLine("Run time: " + timer.Elapsed.ToString());
             string[] results = new string[3];
             results[COST] = costOfBssf().ToString();    // load results into array here, replacing these dummy values
             results[TIME] = bestTime;
